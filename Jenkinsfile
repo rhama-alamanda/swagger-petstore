@@ -143,11 +143,11 @@ pipeline {
                 git branch: 'poc-sss', url: "${env.GIT_URL}"
                 
                 script {
-                    withDockerServer([uri: 'tcp://10.87.1.236:2375']) {
-                        withDockerRegistry(credentialsId: 'DockerCredentialsNexusRepos', url: "${env.NEXUS_REPOSITORY_URL}") {
+                    docker.withDockerServer([uri: 'tcp://10.87.1.236:2375']) {
+                        docker.withDockerRegistry(credentialsId: 'DockerCredentialsNexusRepos', url: "${env.NEXUS_REPOSITORY_URL}") {
                             def customImage = docker.build("10.87.1.60:8083/${env.COMPONENT_NAME}:${env.APP_VER}-${env.BUILD_ID}")
                             /* Push the container to the custom Registry */
-                            customImage.push()
+                            customImage.push("${env.BUILD_NUMBER}")
 
                             customImage.push('latest')
                         }                        
