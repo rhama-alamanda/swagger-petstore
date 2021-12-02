@@ -147,9 +147,9 @@ pipeline {
                         docker.withDockerRegistry(credentialsId: 'DockerCredentialsNexusRepos', url: "${env.NEXUS_REPOSITORY_URL}") {
                             def customImage = docker.build("10.87.1.60:8083/${env.COMPONENT_NAME}:${env.APP_VER}-${env.BUILD_ID}")
                             /* Push the container to the custom Registry */
-                            customImage.push()
+                            customImage.push("${env.BUILD_NUMBER}")
 
-                            customImage.push('latest')
+                            customImage.push("latest")
                         }                        
                     }                    
                 }
