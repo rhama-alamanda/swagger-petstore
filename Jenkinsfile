@@ -29,6 +29,10 @@ pipeline {
         SSC_URL = "${params.SSC_URL ?: 'http://10.87.1.12:8080/ssc'}" // URL of Fortify Software Security Center
         SSC_APP_VERSION_ID = "${params.SSC_APP_VERSION_ID ?: '1001'}" // Id of Application in SSC to upload results to        
         SSC_SENSOR_POOL_UUID = "${params.SSC_SENSOR_POOL_UUID ?: '00000000-0000-0000-0000-000000000002'}" // UUID of Scan Central Sensor Pool to use - leave for Default Pool        
+
+	registry = "10.87.1.60:8083/swagger-petStore"
+	registryCredential = 'DockerCredentialsNexusRepos'
+        dockerImage = ''
     }
 
     stages {
@@ -137,19 +141,37 @@ pipeline {
             }
         }
 
+	stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build registry + ":$BUILD_NUMBER"
+        }
+      }
+    }
+    stage('Deploy Image') {
+      steps{
+        script {
+          docker.withRegistry( '', registryCredential ) {
+            dockerImage.push()
+	    dockerImage.push("latest")
+          }
+        }
+      }
+    }
+
         stage("Build Docker image and push to Nexus Repo") {            
             steps {
                 // Get some code from a GitHub repository                
                 git branch: 'poc-sss', url: "${env.GIT_URL}"
                 
                 script {
-                    docker.withDockerServer([uri: 'tcp://10.87.1.236:2375']) {
-                        docker.withDockerRegistry(credentialsId: 'DockerCredentialsNexusRepos', url: "${env.NEXUS_REPOSITORY_URL}") {
+                    withDockerServer([uri: 'tcp://10.87.1.236:2375']) {
+                        withDockerRegistry(credentialsId: 'DockerCredentialsNexusRepos', url: "${env.NEXUS_REPOSITORY_URL}") {
                             def customImage = docker.build("10.87.1.60:8083/${env.COMPONENT_NAME}:${env.APP_VER}-${env.BUILD_ID}")
                             /* Push the container to the custom Registry */
-                            customImage.push("${env.BUILD_NUMBER}")
+                            customImage.push()
 
-                            customImage.push("latest")
+                            customImage.push('latest')
                         }                        
                     }                    
                 }
